@@ -1,2 +1,3 @@
-Jun Hyeok Park
-Jerome Lau
+Jun Hyeok Park <br>
+Jerome Lau <br>
+Terence Cheung
