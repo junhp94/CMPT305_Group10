@@ -15,6 +15,7 @@ public:
     virtual ~PipelineStage() {}
 };
 
+// Instruction Fetch
 class IFStage : public PipelineStage
 {
 private:
@@ -25,6 +26,7 @@ public:
     bool isEmpty() const override;
 };
 
+// Instruction decode and read operands
 class IDStage : public PipelineStage
 {
 private:
@@ -35,6 +37,7 @@ public:
     bool isEmpty() const override;
 };
 
+// Issue and Execute
 class EXStage : public PipelineStage
 {
 private:
@@ -45,6 +48,7 @@ public:
     bool isEmpty() const override;
 };
 
+// Memory read/write for load/store instructions
 class MEMStage : public PipelineStage
 {
 private:
@@ -55,6 +59,7 @@ public:
     bool isEmpty() const override;
 };
 
+// Write back results to registers and Retire
 class WBStage : public PipelineStage
 {
 private:
