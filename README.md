@@ -8,5 +8,5 @@ Terence Cheung
 ## How to run:
 ```
 make all
-./proj /path/to/file/compute_fp_1
+./proj /path/to/file/compute_fp_1 10 10 2
 ```

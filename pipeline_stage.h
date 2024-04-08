@@ -1,16 +1,17 @@
 #ifndef PIPELINE_STAGE_H_
 #define PIPELINE_STAGE_H_
 
-#include <vector>
+#include <deque>
 #include "trace.h"
 
 class PipelineStage
 {
 public:
-    std::vector<Trace> instructions;
+    std::deque<Trace> instructions;
 
     // insert, remove implementation
-    virtual void process(const Trace &instruction) = 0;
+    virtual void insert(const Trace &instruction) = 0;
+    virtual Trace process() = 0;
     virtual bool isEmpty() const = 0;
     virtual ~PipelineStage() {}
 };
@@ -19,10 +20,11 @@ public:
 class IFStage : public PipelineStage
 {
 private:
-    std::vector<Trace> instructions;
+    std::deque<Trace> instructions;
 
 public:
-    void process(const Trace &instruction) override;
+    void insert(const Trace &instruction) override;
+    Trace process() override;
     bool isEmpty() const override;
 };
 
@@ -30,10 +32,11 @@ public:
 class IDStage : public PipelineStage
 {
 private:
-    std::vector<Trace> instructions;
+    std::deque<Trace> instructions;
 
 public:
-    void process(const Trace &instruction) override;
+    void insert(const Trace &instruction) override;
+    Trace process() override;
     bool isEmpty() const override;
 };
 
@@ -41,10 +44,11 @@ public:
 class EXStage : public PipelineStage
 {
 private:
-    std::vector<Trace> instructions;
+    std::deque<Trace> instructions;
 
 public:
-    void process(const Trace &instruction) override;
+    void insert(const Trace &instruction) override;
+    Trace process() override;
     bool isEmpty() const override;
 };
 
@@ -52,10 +56,11 @@ public:
 class MEMStage : public PipelineStage
 {
 private:
-    std::vector<Trace> instructions;
+    std::deque<Trace> instructions;
 
 public:
-    void process(const Trace &instruction) override;
+    void insert(const Trace &instruction) override;
+    Trace process() override;
     bool isEmpty() const override;
 };
 
@@ -63,10 +68,11 @@ public:
 class WBStage : public PipelineStage
 {
 private:
-    std::vector<Trace> instructions;
+    std::deque<Trace> instructions;
 
 public:
-    void process(const Trace &instruction) override;
+    void insert(const Trace &instruction) override;
+    Trace process() override;
     bool isEmpty() const override;
 };
 

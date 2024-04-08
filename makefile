@@ -1,5 +1,3 @@
-## This is a simple Makefile 
-
 # Define what compiler to use and the flags.
 CC=cc
 CXX=g++
@@ -20,11 +18,8 @@ pipeline_stage.o: pipeline_stage.cpp trace.h
 file_input.o: file_input.cpp trace.h
 trace.o: trace.cpp trace.h
 
-###################################
-# BEGIN SOLUTION
 proj: proj.o file_input.o trace.o pipeline_simulator.o pipeline_stage.o
 	$(CXX) -o proj proj.o file_input.o trace.o pipeline_simulator.o pipeline_stage.o $(CCFLAGS) $(LDLIBS)
-
 
 clean:
 	rm -f core *.o proj

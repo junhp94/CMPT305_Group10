@@ -12,9 +12,10 @@ int main(int argc, char *argv[]) {
         printf("Not enough arguments\n");
         return 0;
     }
+
     std::string file_name = argv[1];
-    long start_inst = std::stol(argv[2]);
-    long inst_count = std::stol(argv[3]);
+    unsigned long start_inst = std::stoul(argv[2]);
+    unsigned long inst_count = std::stoul(argv[3]);
     int width = std::stoi(argv[4]);
 
     PipelineSimulator simulation;
