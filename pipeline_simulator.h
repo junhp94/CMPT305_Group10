@@ -17,7 +17,7 @@ public:
     PipelineSimulator();
     ~PipelineSimulator();
 
-    void runSimulation(const std::string &traceFile, long start_inst, long inst_count, int pipelineWidth);
+    void runSimulation(const std::string &tfile_name, long start_inst, long inst_count, int pipelineWidth);
 };
 
 #endif
