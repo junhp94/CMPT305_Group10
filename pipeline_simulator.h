@@ -11,7 +11,7 @@ class PipelineSimulator
 {
 private:
     // stage array
-    unsigned long currentCycle = 0;
+    unsigned long currentCycle;
 
 public:
     PipelineSimulator();
