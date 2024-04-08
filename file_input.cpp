@@ -14,7 +14,10 @@ void FileInput::ReadTraceFromFile(const std::string& file_path) {
 
 Trace FileInput::GetNext() {
     std::string text;
-    getline(file_, text);
+    Trace res;
+    if (!getline(file_, text)) {
+        return res;
+    }
 
     std::vector<std::string> vect;
 
@@ -26,7 +29,6 @@ Trace FileInput::GetNext() {
         vect.push_back(substr);
     }
 
-    Trace res;
     if (vect.size() < 2) {
         return res;
     }
