@@ -1,8 +1,11 @@
 #ifndef PIPELINE_SIMULATOR_H_
 #define PIPELINE_SIMULATOR_H_
 
+#include <string>
+
 #include "pipeline_stage.h"
 #include "trace.h"
+
 
 class PipelineSimulator
 {
@@ -14,7 +17,7 @@ public:
     PipelineSimulator();
     ~PipelineSimulator();
 
-    void runSimulation(const std::string &traceFile, int pipelineWidth);
+    void runSimulation(const std::string &traceFile, long start_inst, long inst_count, int pipelineWidth);
 };
 
 #endif
