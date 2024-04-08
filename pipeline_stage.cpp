@@ -1,8 +1,19 @@
 #include "pipeline_stage.h"
 
-void PipelineStage::process(const Trace &instruction)
+void PipelineStage::insert(const Trace &instruction)
 {
     instructions.push_back(instruction);
+}
+
+Trace PipelineStage::process()
+{
+    // returns and removes first item from list deque
+    Trace res;
+    if (!instructions.empty()) {
+        res = instructions.front();
+        instructions.erase(instructions.begin());
+    }
+    return res;
 }
 
 bool PipelineStage::isEmpty() const
@@ -10,9 +21,14 @@ bool PipelineStage::isEmpty() const
     return instructions.empty();
 }
 
-void IFStage::process(const Trace &instruction)
+void IFStage::insert(const Trace &instruction)
 {
-    PipelineStage::process(instruction);
+    PipelineStage::insert(instruction);
+}
+
+Trace IFStage::process()
+{
+    return PipelineStage::process();
 }
 
 bool IFStage::isEmpty() const
@@ -20,9 +36,14 @@ bool IFStage::isEmpty() const
     return PipelineStage::isEmpty();
 }
 
-void IDStage::process(const Trace &instruction)
+void IDStage::insert(const Trace &instruction)
 {
-    PipelineStage::process(instruction);
+    PipelineStage::insert(instruction);
+}
+
+Trace IDStage::process()
+{
+    return PipelineStage::process();
 }
 
 bool IDStage::isEmpty() const
@@ -30,9 +51,14 @@ bool IDStage::isEmpty() const
     return PipelineStage::isEmpty();
 }
 
-void EXStage::process(const Trace &instruction)
+void EXStage::insert(const Trace &instruction)
 {
-    PipelineStage::process(instruction);
+    PipelineStage::insert(instruction);
+}
+
+Trace EXStage::process()
+{
+    return PipelineStage::process();
 }
 
 bool EXStage::isEmpty() const
@@ -40,9 +66,14 @@ bool EXStage::isEmpty() const
     return PipelineStage::isEmpty();
 }
 
-void MEMStage::process(const Trace &instruction)
+void MEMStage::insert(const Trace &instruction)
 {
-    PipelineStage::process(instruction);
+    PipelineStage::insert(instruction);
+}
+
+Trace MEMStage::process()
+{
+    return PipelineStage::process();
 }
 
 bool MEMStage::isEmpty() const
@@ -50,9 +81,14 @@ bool MEMStage::isEmpty() const
     return PipelineStage::isEmpty();
 }
 
-void WBStage::process(const Trace &instruction)
+void WBStage::insert(const Trace &instruction)
 {
-    PipelineStage::process(instruction);
+    PipelineStage::insert(instruction);
+}
+
+Trace WBStage::process()
+{
+    return PipelineStage::process();
 }
 
 bool WBStage::isEmpty() const

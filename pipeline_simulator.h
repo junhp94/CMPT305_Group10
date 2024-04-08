@@ -11,13 +11,13 @@ class PipelineSimulator
 {
 private:
     // stage array
-    unsigned long currentCycle;
+    unsigned long currentCycle = 0;
 
 public:
     PipelineSimulator();
     ~PipelineSimulator();
 
-    void runSimulation(const std::string &tfile_name, long start_inst, long inst_count, int pipelineWidth);
+    void runSimulation(const std::string &tfile_name, unsigned long start_inst, unsigned long inst_count, int pipeline_width);
 };
 
 #endif
