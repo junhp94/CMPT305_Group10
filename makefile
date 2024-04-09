@@ -17,9 +17,10 @@ pipeline_simulator.o: pipeline_simulator.cpp pipeline_stage.h trace.h
 pipeline_stage.o: pipeline_stage.cpp trace.h
 file_input.o: file_input.cpp trace.h
 trace.o: trace.cpp trace.h
+functional_unit.o: functional_unit.cpp functional_unit.h
 
-proj: proj.o file_input.o trace.o pipeline_simulator.o pipeline_stage.o
-	$(CXX) -o proj proj.o file_input.o trace.o pipeline_simulator.o pipeline_stage.o $(CCFLAGS) $(LDLIBS)
+proj: proj.o file_input.o trace.o pipeline_simulator.o pipeline_stage.o functional_unit.o
+	$(CXX) -o proj proj.o file_input.o trace.o pipeline_simulator.o pipeline_stage.o functional_unit.o $(CCFLAGS) $(LDLIBS)
 
 clean:
 	rm -f core *.o proj

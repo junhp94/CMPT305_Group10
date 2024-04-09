@@ -3,6 +3,7 @@
 
 #include "pipeline_simulator.h"
 #include "file_input.h"
+#include "functional_unit.h"
 
 
 PipelineSimulator::PipelineSimulator() : currentCycle(0)
@@ -33,6 +34,11 @@ void PipelineSimulator::runSimulation(const std::string &file_name, unsigned lon
     // TODO: probably need a set for when something is done ex and for mem
     // "For dependence on integer or FP instructions, dependences are satisfied when they complete EX"
     //"For dependence on load or store instructions, dependences are satisfied when they complete MEM"
+    FunctionalUnit ALU_unit;
+    FunctionalUnit FP_unit;
+    FunctionalUnit Branch_unit;
+    FunctionalUnit Load_unit;
+    FunctionalUnit Store_unit;
 
     IFStage IF_stage;
     IDStage ID_stage;
