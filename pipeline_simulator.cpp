@@ -19,17 +19,12 @@ PipelineSimulator::~PipelineSimulator()
 void PipelineSimulator::runSimulation(const std::string &file_name, unsigned long start_inst, unsigned long inst_count, int pipeline_width)
 {
     FileInput file;
+    unsigned long finished_instr_count = 0;
 
     file.ReadTraceFromFile(file_name);
     std::set<unsigned long> completed_instructions;
-
-    unsigned long executed = 0;
-    while (executed < start_inst) {
-        Trace tmp = file.GetNext();
-        completed_instructions.insert(tmp.instructionAddr);
-
-        executed++;
-    }
+    
+    file.SkipToInstruction(start_inst);
 
     // TODO: probably need a set for when something is done ex and for mem
     // "For dependence on integer or FP instructions, dependences are satisfied when they complete EX"
@@ -45,32 +40,92 @@ void PipelineSimulator::runSimulation(const std::string &file_name, unsigned lon
     EXStage EX_stage;
     MEMStage MEM_stage;
     WBStage WB_stage;
-    while (this->currentCycle < inst_count) {
-        Trace* finished_IF = new Trace[pipeline_width];
-        // process IF
-        for (int i = 0; i < pipeline_width; i++) {
-            Trace next_instr = file.GetNext();
-            if (!next_instr.isValid()) {
-                return;
+
+    // Temp BRANCH dependency
+    int Branch_dep = 0;
+
+    while (finished_instr_count < inst_count) {
+        // All instructions in WB retire and leave the pipeline 
+        while(!WB_stage.isEmpty()){
+            WB_stage.process();
+            finished_instr_count++;
+            std::cout << finished_instr_count << std::endl;
+        }
+        // All instructions in MEM move to WB
+        while(!MEM_stage.isEmpty()){
+            Trace instr = MEM_stage.process();
+            WB_stage.insert(instr);
+        }
+        // All instructions in EX move to MEM (in order) except more than one load or store
+        while(!EX_stage.isEmpty()){
+            Trace instr = EX_stage.process();
+            if(instr.type == Trace::Type::LOAD){
+                // We can’t have two load instructions go to MEM in the same cycle
+                if(Load_unit.isAvailable()){
+                    MEM_stage.insert(instr);
+                    Load_unit.setBusy();
+                }
+            }else if(instr.type == Trace::Type::STORE){
+                // We can’t have two store instructions go to MEM in the same cycle
+                if(Store_unit.isAvailable()){
+                    MEM_stage.insert(instr);
+                    Store_unit.setBusy();
+                }
+            }else{
+                // Move INT/FP/Branch instructions to MEM
+                MEM_stage.insert(instr);
+                // Finish Branch dependencies
+                if(instr.type == Trace::Type::BRANCH){
+                    Branch_dep = 0;
+                }
             }
-            completed_instructions.erase(next_instr.instructionAddr);
-            IF_stage.insert(next_instr);
-            finished_IF[i] = IF_stage.process();
         }
-        // process ID
-        Trace* finished_ID = new Trace[pipeline_width];
-        for (int i = 0; i < pipeline_width; i++) {
-            finished_ID[i] = ID_stage.process();
-        }
-        // add finished IFs to ID
-        for (int i = 0; i < pipeline_width; i++) {
-            if (finished_IF[i].isValid()) {
-                ID_stage.insert(finished_IF[i]);
+        // All instructions in ID move to EX (in order) if (1) all dependences are satisfied; (2) no structural hazards
+        while(!ID_stage.isEmpty()){
+            Trace instr = ID_stage.process();
+            if(instr.type == Trace::Type::INT_INSTR){
+                // We can’t have two integer ALU instructions go to EX in the same cycle
+                if (ALU_unit.isAvailable()){
+                    EX_stage.insert(instr);
+                    ALU_unit.setBusy();
+                }
+            }else if(instr.type == Trace::Type::FP_INSTR){
+                // We can’t have two FP instructions go to EX in the same cycle
+                if(FP_unit.isAvailable()){
+                    EX_stage.insert(instr);
+                    FP_unit.setBusy();
+                }
+            }else if(instr.type == Trace::Type::BRANCH){
+                // We can’t have two branch instructions go to EX in the same cycle
+                if(Branch_unit.isAvailable()){
+                    EX_stage.insert(instr);
+                    Branch_unit.setBusy();
+                    Branch_dep = 1;
+                }
+            }else{
+                // Move Load/Store instructions to EX
+                EX_stage.insert(instr);
             }
         }
-        
-        delete[] finished_IF;
-        delete[] finished_ID;
+        // All instructions in IF move to ID if pipeline slots are available (no instructions stalled in ID)
+        while(!IF_stage.isEmpty()){
+            Trace instr = IF_stage.process();
+            ID_stage.insert(instr);
+        }
+        // Fetch W new instructions from the trace to IF unless a previous branch hasn’t passed EX
+        if(Branch_dep == 0){
+            for(int i = 0; i < pipeline_width; ++i) {
+                Trace instr = file.GetNext();
+                IF_stage.insert(instr);
+            }
+        }
+
+        // End of cycle
         this->currentCycle++;
+        ALU_unit.setFree();
+        FP_unit.setFree();
+        Branch_unit.setFree();
+        Load_unit.setFree();
+        Store_unit.setFree();
     }
 }

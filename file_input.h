@@ -3,6 +3,7 @@
 
 #include <fstream>
 #include <string>
+#include <limits>
 
 #include "trace.h"
 
@@ -12,6 +13,7 @@ public:
     ~FileInput();
 
     void ReadTraceFromFile(const std::string& file_path);
+    void SkipToInstruction(unsigned long start_inst);
     Trace GetNext();
 
 private:
