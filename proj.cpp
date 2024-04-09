@@ -17,7 +17,6 @@ int main(int argc, char *argv[]) {
     unsigned long start_inst = std::stoul(argv[2]);
     unsigned long inst_count = std::stoul(argv[3]);
     int width = std::stoi(argv[4]);
-    printf("ASDSAD\n");
 
     PipelineSimulator simulation;
     simulation.runSimulation(file_name, start_inst, inst_count, width);
