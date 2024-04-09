@@ -2,6 +2,7 @@
 #include <iostream>
 #include <vector>
 #include <sstream>
+#include <limits>
 
 void FileInput::ReadTraceFromFile(const std::string& file_path) {
     file_.open(file_path);
@@ -10,6 +11,16 @@ void FileInput::ReadTraceFromFile(const std::string& file_path) {
         std::cerr << "Error: Unable to open file " << file_path << std::endl;
         exit(1);
     }
+}
+
+void FileInput::SkipToInstruction(unsigned long start_inst) {
+    for (unsigned long line_number = 0; line_number < start_inst; ++line_number ) {
+        if (!file_.ignore(std::numeric_limits<std::streamsize>::max(), '\n')){
+            return;
+        }
+    }
+
+    return;
 }
 
 Trace FileInput::GetNext() {
