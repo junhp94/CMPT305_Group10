@@ -38,6 +38,7 @@ public:
     void insert(const Trace &instruction) override;
     Trace process() override;
     bool isEmpty() const override;
+    int size();
 };
 
 // Issue and Execute

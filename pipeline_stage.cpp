@@ -51,6 +51,11 @@ bool IDStage::isEmpty() const
     return PipelineStage::isEmpty();
 }
 
+int IDStage::size()
+{
+    return instructions.size();
+}
+
 void EXStage::insert(const Trace &instruction)
 {
     PipelineStage::insert(instruction);
