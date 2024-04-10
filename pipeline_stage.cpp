@@ -21,6 +21,11 @@ bool PipelineStage::isEmpty() const
     return instructions.empty();
 }
 
+int PipelineStage::size() const
+{
+    return instructions.size();
+}
+
 void IFStage::insert(const Trace &instruction)
 {
     PipelineStage::insert(instruction);
@@ -34,6 +39,11 @@ Trace IFStage::process()
 bool IFStage::isEmpty() const
 {
     return PipelineStage::isEmpty();
+}
+
+int IFStage::size() const
+{
+    return PipelineStage::size();
 }
 
 void IDStage::insert(const Trace &instruction)
@@ -51,9 +61,9 @@ bool IDStage::isEmpty() const
     return PipelineStage::isEmpty();
 }
 
-int IDStage::size()
+int IDStage::size() const
 {
-    return instructions.size();
+    return PipelineStage::size();
 }
 
 void EXStage::insert(const Trace &instruction)
@@ -71,6 +81,11 @@ bool EXStage::isEmpty() const
     return PipelineStage::isEmpty();
 }
 
+int EXStage::size() const
+{
+    return PipelineStage::size();
+}
+
 void MEMStage::insert(const Trace &instruction)
 {
     PipelineStage::insert(instruction);
@@ -86,6 +101,11 @@ bool MEMStage::isEmpty() const
     return PipelineStage::isEmpty();
 }
 
+int MEMStage::size() const
+{
+    return PipelineStage::size();
+}
+
 void WBStage::insert(const Trace &instruction)
 {
     PipelineStage::insert(instruction);
@@ -99,4 +119,9 @@ Trace WBStage::process()
 bool WBStage::isEmpty() const
 {
     return PipelineStage::isEmpty();
+}
+
+int WBStage::size() const
+{
+    return PipelineStage::size();
 }

@@ -22,15 +22,10 @@ void PipelineSimulator::runSimulation(const std::string &file_name, unsigned lon
     unsigned long finished_instr_count = 0;
 
     file.ReadTraceFromFile(file_name);
-    std::set<unsigned long> completed_dependencies;
+    std::set<unsigned long> in_progress_instructions;
+
     
-    unsigned long executed = 0;
-    while (executed < start_inst) {
-        Trace tmp = file.GetNext();
-        completed_dependencies.insert(tmp.instructionAddr);
-    }
-    
-    // file.SkipToInstruction(start_inst);
+    file.SkipToInstruction(start_inst);
 
     // TODO: probably need a set for when something is done ex and for mem
     // "For dependence on integer or FP instructions, dependences are satisfied when they complete EX"
@@ -51,7 +46,7 @@ void PipelineSimulator::runSimulation(const std::string &file_name, unsigned lon
     int Branch_dep = 0;
 
     while (finished_instr_count < inst_count) {
-        std::vector<Trace> add_to_completed;
+        std::vector<Trace> to_remove;
         // All instructions in WB retire and leave the pipeline 
         while(!WB_stage.isEmpty()){
             WB_stage.process();
@@ -63,8 +58,9 @@ void PipelineSimulator::runSimulation(const std::string &file_name, unsigned lon
             Trace instr = MEM_stage.process();
             WB_stage.insert(instr);
 
+            //"For dependence on load or store instructions, dependences are satisfied when they complete MEM"
             if(instr.type == Trace::Type::LOAD || instr.type == Trace::Type::STORE){
-                add_to_completed.push_back(instr);
+                to_remove.push_back(instr);
             }
         }
         // All instructions in EX move to MEM (in order) except more than one load or store
@@ -88,9 +84,9 @@ void PipelineSimulator::runSimulation(const std::string &file_name, unsigned lon
                 // Finish Branch dependencies
                 if(instr.type == Trace::Type::BRANCH){
                     Branch_dep = 0;
-                // add to finished instructions
+                // "For dependence on integer or FP instructions, dependences are satisfied when they complete EX"
                 }else if(instr.type == Trace::Type::INT_INSTR || instr.type == Trace::Type::FP_INSTR) {
-                    add_to_completed.push_back(instr);
+                    to_remove.push_back(instr);
                 }
             
             }
@@ -101,9 +97,10 @@ void PipelineSimulator::runSimulation(const std::string &file_name, unsigned lon
             Trace instr = ID_stage.process();
             bool dependencies_satisfied = true;
             for (std::vector<unsigned long>::size_type j = 0; j < instr.dependencyAddr.size(); j++) {
-                if (completed_dependencies.find(instr.dependencyAddr[i]) == completed_dependencies.end()) {
+                if (in_progress_instructions.find(instr.dependencyAddr[i]) != in_progress_instructions.end()) {
                     dependencies_satisfied = false;
                     ID_stage.insert(instr);
+                    break;
                 }
             }
             if (dependencies_satisfied) {
@@ -142,12 +139,14 @@ void PipelineSimulator::runSimulation(const std::string &file_name, unsigned lon
             for(int i = 0; i < pipeline_width; ++i) {
                 Trace instr = file.GetNext();
                 IF_stage.insert(instr);
-                completed_dependencies.erase(instr.instructionAddr);
+                if (instr.type != Trace::Type::BRANCH) {
+                    in_progress_instructions.insert(instr.instructionAddr);
+                }
             }
         }
 
-        for (std::vector<Trace>::size_type i = 0; i < add_to_completed.size(); i++) {
-            completed_dependencies.insert(add_to_completed[i].instructionAddr);
+        for (std::vector<Trace>::size_type i = 0; i < to_remove.size(); i++) {
+            in_progress_instructions.erase(to_remove[i].instructionAddr);
         }
 
         // End of cycle

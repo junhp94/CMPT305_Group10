@@ -13,6 +13,7 @@ public:
     virtual void insert(const Trace &instruction) = 0;
     virtual Trace process() = 0;
     virtual bool isEmpty() const = 0;
+    virtual int size() const = 0;
     virtual ~PipelineStage() {}
 };
 
@@ -26,6 +27,7 @@ public:
     void insert(const Trace &instruction) override;
     Trace process() override;
     bool isEmpty() const override;
+    int size() const override;
 };
 
 // Instruction decode and read operands
@@ -38,7 +40,7 @@ public:
     void insert(const Trace &instruction) override;
     Trace process() override;
     bool isEmpty() const override;
-    int size();
+    int size() const override;
 };
 
 // Issue and Execute
@@ -51,6 +53,7 @@ public:
     void insert(const Trace &instruction) override;
     Trace process() override;
     bool isEmpty() const override;
+    int size() const override;
 };
 
 // Memory read/write for load/store instructions
@@ -63,6 +66,7 @@ public:
     void insert(const Trace &instruction) override;
     Trace process() override;
     bool isEmpty() const override;
+    int size() const override;
 };
 
 // Write back results to registers and Retire
@@ -75,6 +79,7 @@ public:
     void insert(const Trace &instruction) override;
     Trace process() override;
     bool isEmpty() const override;
+    int size() const override;
 };
 
 #endif
