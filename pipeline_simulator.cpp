@@ -81,6 +81,8 @@ void PipelineSimulator::runSimulation(const std::string &file_name, unsigned lon
             }
         }
         // All instructions in ID move to EX (in order) if (1) all dependences are satisfied; (2) no structural hazards
+        // TODO:
+        // https://piazza.com/class/lr39n0iwlvm5aj/post/129
         while(!ID_stage.isEmpty()){
             Trace instr = ID_stage.process();
             if(instr.type == Trace::Type::INT_INSTR){
@@ -109,6 +111,8 @@ void PipelineSimulator::runSimulation(const std::string &file_name, unsigned lon
         }
         // All instructions in IF move to ID if pipeline slots are available (no instructions stalled in ID)
         while(!IF_stage.isEmpty()){
+            // TODO:
+            // no instructions stalled in ID
             Trace instr = IF_stage.process();
             ID_stage.insert(instr);
         }
@@ -116,7 +120,9 @@ void PipelineSimulator::runSimulation(const std::string &file_name, unsigned lon
         if(Branch_dep == 0){
             for(int i = 0; i < pipeline_width; ++i) {
                 Trace instr = file.GetNext();
-                IF_stage.insert(instr);
+                if(instr.isValid()){
+                    IF_stage.insert(instr);                
+                }
             }
         }
 
@@ -128,4 +134,5 @@ void PipelineSimulator::runSimulation(const std::string &file_name, unsigned lon
         Load_unit.setFree();
         Store_unit.setFree();
     }
+    std::cout << "Simulation Runtime(cycles): " << this->currentCycle << std::endl;
 }
