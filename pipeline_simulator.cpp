@@ -97,7 +97,7 @@ void PipelineSimulator::runSimulation(const std::string &file_name, unsigned lon
             Trace instr = ID_stage.process();
             bool dependencies_satisfied = true;
             for (std::vector<unsigned long>::size_type j = 0; j < instr.dependencyAddr.size(); j++) {
-                if (in_progress_instructions.find(instr.dependencyAddr[i]) != in_progress_instructions.end()) {
+                if (in_progress_instructions.find(instr.dependencyAddr[j]) != in_progress_instructions.end()) {
                     dependencies_satisfied = false;
                     ID_stage.insert(instr);
                     break;
