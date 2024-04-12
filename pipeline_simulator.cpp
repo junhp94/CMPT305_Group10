@@ -62,8 +62,9 @@ void PipelineSimulator::runSimulation(const std::string &file_name, unsigned lon
             }
         }
         bool EX_blocked = false;
+        int EX_completions = 0;
         // All instructions in EX move to MEM (in order) except more than one load or store
-        while (!EX_stage.isEmpty() && !EX_blocked)
+        while (!EX_stage.isEmpty() && !EX_blocked && EX_completions < pipeline_width)
         {
             Trace instr = EX_stage.process();
             if (instr.type == Trace::Type::LOAD)
@@ -72,6 +73,7 @@ void PipelineSimulator::runSimulation(const std::string &file_name, unsigned lon
                 if (Load_unit.isAvailable())
                 {
                     MEM_stage.insert(instr);
+                    EX_completions++;
                     Load_unit.setBusy();
                 }
                 else
@@ -86,6 +88,7 @@ void PipelineSimulator::runSimulation(const std::string &file_name, unsigned lon
                 if (Store_unit.isAvailable())
                 {
                     MEM_stage.insert(instr);
+                    EX_completions++;
                     Store_unit.setBusy();
                 }
                 else
@@ -98,12 +101,13 @@ void PipelineSimulator::runSimulation(const std::string &file_name, unsigned lon
             {
                 // Move INT/FP/Branch instructions to MEM
                 MEM_stage.insert(instr);
+                EX_completions++;
                 // Finish Branch dependencies
                 if (instr.type == Trace::Type::BRANCH)
                 {
                     Branch_dep = 0;
-                    // "For dependence on integer or FP instructions, dependences are satisfied when they complete EX"
                 }
+                // "For dependence on integer or FP instructions, dependences are satisfied when they complete EX"
                 else if (instr.type == Trace::Type::INT_INSTR || instr.type == Trace::Type::FP_INSTR)
                 {
                     to_remove.push_back(instr);
@@ -111,10 +115,9 @@ void PipelineSimulator::runSimulation(const std::string &file_name, unsigned lon
             }
         }
         // All instructions in ID move to EX (in order) if (1) all dependences are satisfied; (2) no structural hazards
-        int i = 0;
-        int completions = 0;
+        int ID_completions = 0;
         bool ID_blocked = false;
-        while (i < ID_stage.size() && completions < pipeline_width && !ID_blocked)
+        while (ID_stage.isEmpty() && ID_completions < pipeline_width && !ID_blocked)
         {
             Trace instr = ID_stage.process();
             for (std::vector<unsigned long>::size_type j = 0; j < instr.dependencyAddr.size(); j++)
@@ -134,7 +137,7 @@ void PipelineSimulator::runSimulation(const std::string &file_name, unsigned lon
                     if (ALU_unit.isAvailable())
                     {
                         EX_stage.insert(instr);
-                        completions++;
+                        ID_completions++;
                         ALU_unit.setBusy();
                     }
                     else
@@ -149,7 +152,7 @@ void PipelineSimulator::runSimulation(const std::string &file_name, unsigned lon
                     if (FP_unit.isAvailable())
                     {
                         EX_stage.insert(instr);
-                        completions++;
+                        ID_completions++;
                         FP_unit.setBusy();
                     }
                     else
@@ -164,7 +167,7 @@ void PipelineSimulator::runSimulation(const std::string &file_name, unsigned lon
                     if (Branch_unit.isAvailable())
                     {
                         EX_stage.insert(instr);
-                        completions++;
+                        ID_completions++;
                         Branch_unit.setBusy();
                         Branch_dep = 1;
                     }
@@ -178,10 +181,9 @@ void PipelineSimulator::runSimulation(const std::string &file_name, unsigned lon
                 {
                     // Move Load/Store instructions to EX
                     EX_stage.insert(instr);
-                    completions++;
+                    ID_completions++;
                 }
             }
-            i++;
         }
         // All instructions in IF move to ID if pipeline slots are available (no instructions stalled in ID)
         while (!IF_stage.isEmpty())
