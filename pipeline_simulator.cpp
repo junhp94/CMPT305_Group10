@@ -284,7 +284,7 @@ void PipelineSimulator::ExperimentalDesign(){
         std::string file_name = file_names[i];
         for (int W = 0; W < 4; ++W){
             for (int r = 0; r < 6; ++r){
-                runSimulation(file_name, replications[r], 1000000, W+1);
+                runSimulation(file_name, replications[r], 10, W+1);
                 std::cout << "Workload: " << file_name << ", W: " << W+1 << ", Replication: " << r+1 << std::endl;
                 printStats();
                 total_runtime += currentCycle;
@@ -307,8 +307,12 @@ void PipelineSimulator::ExperimentalDesign(){
     float W3_impact = 0;
     float W4_impact = 0;
 
+    float SSY = 0;
+
     for(int i = 0; i < 3; ++i){
         for(int j = 0; j < 4; ++j){
+            SSY += table[i][j] * table[i][j];
+
             if(i == 0){
                 fp1_impact += table[i][j];
             }else if(i == 1){
@@ -327,12 +331,31 @@ void PipelineSimulator::ExperimentalDesign(){
             }
         }
     }
-    std::cout << "Mean Runtime: " << total_runtime/72 << std::endl;
-    std::cout << "fp1 impact: " << total_runtime - fp1_impact/3 << std::endl;
-    std::cout << "int0 impact: " << total_runtime - int0_impact/3 << std::endl;
-    std::cout << "srv0 impact: " << total_runtime - srv0_impact/3 << std::endl;
-    std::cout << "W1 impact: " << total_runtime - W1_impact/4 << std::endl;
-    std::cout << "W2 impact: " << total_runtime - W2_impact/4 << std::endl;
-    std::cout << "W3 impact: " << total_runtime - W3_impact/4 << std::endl;
-    std::cout << "W4 impact: " << total_runtime - W4_impact/4 << std::endl;
+
+    float mean_runtime = total_runtime/72;
+    fp1_impact = mean_runtime - fp1_impact/4;
+    int0_impact = mean_runtime - int0_impact/4;
+    srv0_impact = mean_runtime - srv0_impact/4;
+    W1_impact = mean_runtime - W1_impact/3;
+    W2_impact = mean_runtime - W2_impact/3;
+    W3_impact = mean_runtime - W3_impact/3;
+    W4_impact = mean_runtime - W4_impact/3;
+
+    float SS0 = 3 * 4 * mean_runtime * mean_runtime;
+    float SSA = 4 * (fp1_impact * fp1_impact + int0_impact * int0_impact + srv0_impact * srv0_impact);
+    float SSB = 3 * (W1_impact * W1_impact + W2_impact * W2_impact + W3_impact * W3_impact + W4_impact * W4_impact);
+    float SST = SSY - SS0;
+    float SSE = SST - SSA - SSB;
+
+    std::cout << "Mean Runtime: " << mean_runtime << std::endl;
+    std::cout << "fp1 impact: " << fp1_impact << std::endl;
+    std::cout << "int0 impact: " << int0_impact << std::endl;
+    std::cout << "srv0 impact: " << srv0_impact << std::endl;
+    std::cout << "W1 impact: " <<  W1_impact << std::endl;
+    std::cout << "W2 impact: " <<  W2_impact << std::endl;
+    std::cout << "W3 impact: " <<  W3_impact << std::endl;
+    std::cout << "W4 impact: " <<  W4_impact << std::endl;
+    std::cout << "Variation explained by Workload: " << SSA/SST * 100 << "%" << std::endl;
+    std::cout << "Variation explained by Pipeline Width: " << SSB/SST * 100 << "%" << std::endl;
+    std::cout << "Variation explained by Experimental Error: " << SSE/SST * 100 << "%" << std::endl;
 }
