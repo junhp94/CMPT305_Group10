@@ -273,19 +273,66 @@ void PipelineSimulator::ExperimentalDesign(){
     std::string file_names[] = {"compute_fp_1", "compute_int_0", "srv_0"};
     int replications[] = {1, 5000000, 10000000, 15000000, 20000000, 25000000};
     int total_runtime = 0;
-    
-    for (int i = 0; i < 3; ++i){
-        std::string file_name = file_names[i];
-        for (int r = 0; r < 6; ++r){
-            for (int W = 1; W <= 4; ++W){
-                runSimulation(file_name, replications[r], 1000000, W);
-                std::cout << "Filename: " << file_name << ", Replication: " << r+1 << ", W: " << W << ", Runtime: " << currentCycle << std::endl;
-                total_runtime += currentCycle;
-                ResetSimulator();    
-            }
+    int table[3][4];
+    for (int i = 0; i < 3; ++i) {
+        for (int j = 0; j < 4; ++j) {
+            table[i][j] = 0;
         }
     }
 
-    std::cout << "Mean Runtime: " << total_runtime/72 << std::endl;
+    for (int i = 0; i < 3; ++i){
+        std::string file_name = file_names[i];
+        for (int W = 0; W < 4; ++W){
+            for (int r = 0; r < 6; ++r){
+                runSimulation(file_name, replications[r], 1000000, W+1);
+                std::cout << "Workload: " << file_name << ", W: " << W+1 << ", Replication: " << r+1 << std::endl;
+                printStats();
+                total_runtime += currentCycle;
+                
+                table[i][W] += currentCycle;
 
+                ResetSimulator();
+            }
+            table[i][W] /= 6;
+            std::cout << "Workload: " << file_name << ", W: " << W+1 << ", Mean Runtime: " << table[i][W] << std::endl;
+            std::cout << std::endl;
+        }
+    }
+
+    float fp1_impact = 0;
+    float int0_impact = 0;
+    float srv0_impact = 0;
+    float W1_impact = 0;
+    float W2_impact = 0;
+    float W3_impact = 0;
+    float W4_impact = 0;
+
+    for(int i = 0; i < 3; ++i){
+        for(int j = 0; j < 4; ++j){
+            if(i == 0){
+                fp1_impact += table[i][j];
+            }else if(i == 1){
+                int0_impact += table[i][j];
+            }else{
+                srv0_impact += table[i][j];
+            }
+            if(j == 0){
+                W1_impact += table[i][j];
+            }else if(j == 1){
+                W2_impact += table[i][j];
+            }else if(j == 2){
+                W3_impact += table[i][j];
+            }else{
+                W4_impact += table[i][j];
+            }
+        }
+    }
+    std::cout << "Mean Runtime: " << total_runtime/72 << std::endl;
+    std::cout << "fp1 impact: " << total_runtime - fp1_impact/3 << std::endl;
+    std::cout << "int0 impact: " << total_runtime - int0_impact/3 << std::endl;
+    std::cout << "srv0 impact: " << total_runtime - srv0_impact/3 << std::endl;
+    std::cout << "W1 impact: " << total_runtime - W1_impact/4 << std::endl;
+    std::cout << "W2 impact: " << total_runtime - W2_impact/4 << std::endl;
+    std::cout << "W3 impact: " << total_runtime - W3_impact/4 << std::endl;
+    std::cout << "W4 impact: " << total_runtime - W4_impact/4 << std::endl;
 }
