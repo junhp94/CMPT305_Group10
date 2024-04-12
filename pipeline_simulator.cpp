@@ -187,6 +187,7 @@ void PipelineSimulator::runSimulation(const std::string &file_name, unsigned lon
                 int_instr_count++;
                 break;
             case Trace::BRANCH:
+                branch_instr_count++;
                 break;
             case Trace::FP_INSTR:
                 float_instr_count++;
