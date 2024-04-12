@@ -25,8 +25,8 @@ public:
     void runSimulation(const std::string &tfile_name, unsigned long start_inst, unsigned long inst_count, int pipeline_width);
 
     void printStats();
-
-    void ExperimentalDesign(const std::string &file_name);
+    void ExperimentalDesign();
+    void ResetSimulator();
 };
 
 #endif

@@ -1,6 +1,7 @@
 #include <iostream>
 #include <set>
 #include <iomanip>
+#include <unordered_set>
 
 #include "pipeline_simulator.h"
 #include "file_input.h"
@@ -16,13 +17,17 @@ PipelineSimulator::~PipelineSimulator()
     // cleanup
 }
 
+void PipelineSimulator::ResetSimulator()
+{
+    currentCycle = 0;
+    finished_instr_count = 0;
+}
+
 void PipelineSimulator::runSimulation(const std::string &file_name, unsigned long start_inst, unsigned long inst_count, int pipeline_width)
 {
     FileInput file;
 
-    file.ReadTraceFromFile(file_name);
-    std::set<unsigned long> in_progress_instructions;
-    
+    file.ReadTraceFromFile(file_name);    
     file.SkipToInstruction(start_inst);
 
     FunctionalUnit ALU_unit;
@@ -37,31 +42,37 @@ void PipelineSimulator::runSimulation(const std::string &file_name, unsigned lon
     MEMStage MEM_stage;
     WBStage WB_stage;
 
-    int Branch_dep = 0;
+    bool IF_blocked = false;
+    bool ID_blocked = false;
+    bool EX_blocked = false;
+
+    std::unordered_set<unsigned long> in_progress_instructions;
+
 
     while (finished_instr_count < inst_count)
     {
-        std::vector<Trace> to_remove;
-        // All instructions in WB retire and leave the pipeline
+        std::unordered_set<unsigned long> to_remove;
+        // All instructions in WB retire and leave the pipeline (and the instruction window)
         while (!WB_stage.isEmpty())
         {
             WB_stage.process();
             this->finished_instr_count++;
-            std::cout << finished_instr_count << std::endl;
+            // std::cout << finished_instr_count << std::endl;
         }
+
         // All instructions in MEM move to WB
         while (!MEM_stage.isEmpty())
         {
             Trace instr = MEM_stage.process();
             WB_stage.insert(instr);
 
-            //"For dependence on load or store instructions, dependences are satisfied when they complete MEM"
+            // For dependence on load or store instructions, dependences are satisfied when they complete MEM
             if (instr.type == Trace::Type::LOAD || instr.type == Trace::Type::STORE)
             {
-                to_remove.push_back(instr);
+                to_remove.insert(instr.instructionAddr);
             }
         }
-        bool EX_blocked = false;
+
         // All instructions in EX move to MEM (in order) except more than one load or store
         while (!EX_stage.isEmpty() && !EX_blocked)
         {
@@ -101,40 +112,34 @@ void PipelineSimulator::runSimulation(const std::string &file_name, unsigned lon
                 // Finish Branch dependencies
                 if (instr.type == Trace::Type::BRANCH)
                 {
-                    Branch_dep = 0;
-                    // "For dependence on integer or FP instructions, dependences are satisfied when they complete EX"
+                    IF_blocked = false;
                 }
+                // For dependence on integer or FP instructions, dependences are satisfied when they complete EX
                 else if (instr.type == Trace::Type::INT_INSTR || instr.type == Trace::Type::FP_INSTR)
                 {
-                    to_remove.push_back(instr);
+                    to_remove.insert(instr.instructionAddr);
                 }
             }
         }
         // All instructions in ID move to EX (in order) if (1) all dependences are satisfied; (2) no structural hazards
-        int i = 0;
-        int completions = 0;
-        bool ID_blocked = false;
-        while (i < ID_stage.size() && completions < pipeline_width && !ID_blocked)
+        while (!ID_stage.isEmpty() && !ID_blocked)
         {
             Trace instr = ID_stage.process();
-            for (std::vector<unsigned long>::size_type j = 0; j < instr.dependencyAddr.size(); j++)
-            {
-                if (in_progress_instructions.find(instr.dependencyAddr[j]) != in_progress_instructions.end())
-                {
+
+            for (const auto& dependency : instr.dependencyAddr) {
+                if (in_progress_instructions.find(dependency) != in_progress_instructions.end()){
                     ID_blocked = true;
                     ID_stage.push_front(instr);
                     break;
                 }
             }
-            if (!ID_blocked)
-            {
+            if(!ID_blocked){
                 if (instr.type == Trace::Type::INT_INSTR)
                 {
                     // We can’t have two integer ALU instructions go to EX in the same cycle
                     if (ALU_unit.isAvailable())
                     {
                         EX_stage.insert(instr);
-                        completions++;
                         ALU_unit.setBusy();
                     }
                     else
@@ -149,7 +154,6 @@ void PipelineSimulator::runSimulation(const std::string &file_name, unsigned lon
                     if (FP_unit.isAvailable())
                     {
                         EX_stage.insert(instr);
-                        completions++;
                         FP_unit.setBusy();
                     }
                     else
@@ -164,9 +168,8 @@ void PipelineSimulator::runSimulation(const std::string &file_name, unsigned lon
                     if (Branch_unit.isAvailable())
                     {
                         EX_stage.insert(instr);
-                        completions++;
                         Branch_unit.setBusy();
-                        Branch_dep = 1;
+                        IF_blocked = true;
                     }
                     else
                     {
@@ -178,13 +181,11 @@ void PipelineSimulator::runSimulation(const std::string &file_name, unsigned lon
                 {
                     // Move Load/Store instructions to EX
                     EX_stage.insert(instr);
-                    completions++;
                 }
             }
-            i++;
         }
         // All instructions in IF move to ID if pipeline slots are available (no instructions stalled in ID)
-        while (!IF_stage.isEmpty())
+        while (!IF_stage.isEmpty() && ID_stage.size() < pipeline_width)
         {
             Trace instr = IF_stage.process();
             ID_stage.insert(instr);
@@ -211,12 +212,13 @@ void PipelineSimulator::runSimulation(const std::string &file_name, unsigned lon
             }
         }
         // Fetch W new instructions from the trace to IF unless a previous branch hasn’t passed EX
-        if (Branch_dep == 0)
+        if (IF_blocked == false)
         {
             for (int i = 0; i < pipeline_width; ++i)
             {
                 Trace instr = file.GetNext();
                 IF_stage.insert(instr);
+
                 if (instr.type != Trace::Type::BRANCH)
                 {
                     in_progress_instructions.insert(instr.instructionAddr);
@@ -224,9 +226,8 @@ void PipelineSimulator::runSimulation(const std::string &file_name, unsigned lon
             }
         }
 
-        for (std::vector<Trace>::size_type i = 0; i < to_remove.size(); i++)
-        {
-            in_progress_instructions.erase(to_remove[i].instructionAddr);
+        for (unsigned long addr : to_remove) {
+            in_progress_instructions.erase(addr);
         }
 
         // End of cycle
@@ -236,6 +237,8 @@ void PipelineSimulator::runSimulation(const std::string &file_name, unsigned lon
         Branch_unit.setFree();
         Load_unit.setFree();
         Store_unit.setFree();
+        ID_blocked = false;
+        EX_blocked = false;
     }
 }
 
@@ -266,29 +269,23 @@ void PipelineSimulator::printStats()
               << std::setw(8) << std::fixed << std::setprecision(2) << store_percentage << std::endl;
 }
 
-void PipelineSimulator::ExperimentalDesign(const std::string &file_name){
-    // Replication 1
-    for (int W = 1; W <= 4; ++W){
-        runSimulation(file_name, 1, 1000000, W);
+void PipelineSimulator::ExperimentalDesign(){
+    std::string file_names[] = {"compute_fp_1", "compute_int_0", "srv_0"};
+    int replications[] = {1, 5000000, 10000000, 15000000, 20000000, 25000000};
+    int total_runtime = 0;
+    
+    for (int i = 0; i < 3; ++i){
+        std::string file_name = file_names[i];
+        for (int r = 0; r < 6; ++r){
+            for (int W = 1; W <= 4; ++W){
+                runSimulation(file_name, replications[r], 1000000, W);
+                std::cout << "Filename: " << file_name << ", Replication: " << r+1 << ", W: " << W << ", Runtime: " << currentCycle << std::endl;
+                total_runtime += currentCycle;
+                ResetSimulator();    
+            }
+        }
     }
-    // Replication 2
-    for (int W = 1; W <= 4; ++W){
-        runSimulation(file_name, 5000000, 1000000, W);
-    }
-    // Replication 3
-    for (int W = 1; W <= 4; ++W){
-        runSimulation(file_name, 10000000, 1000000, W);
-    }
-    // Replication 4
-    for (int W = 1; W <= 4; ++W){
-        runSimulation(file_name, 15000000, 1000000, W);
-    }
-    // Replication 5
-    for (int W = 1; W <= 4; ++W){
-        runSimulation(file_name, 20000000, 1000000, W);
-    }
-    // Replication 6
-    for (int W = 1; W <= 4; ++W){
-        runSimulation(file_name, 25000000, 1000000, W);
-    }
+
+    std::cout << "Mean Runtime: " << total_runtime/72 << std::endl;
+
 }
