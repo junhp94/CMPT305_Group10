@@ -41,6 +41,7 @@ public:
     Trace process() override;
     bool isEmpty() const override;
     int size() const override;
+    void push_front(const Trace &instruction);
 };
 
 // Issue and Execute

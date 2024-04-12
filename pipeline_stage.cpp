@@ -66,6 +66,10 @@ int IDStage::size() const
     return PipelineStage::size();
 }
 
+void IDStage::push_front(const Trace &instruction) {
+    instructions.push_front(instruction);
+}
+
 void EXStage::insert(const Trace &instruction)
 {
     PipelineStage::insert(instruction);

@@ -92,42 +92,60 @@ void PipelineSimulator::runSimulation(const std::string &file_name, unsigned lon
             }
         }
         // All instructions in ID move to EX (in order) if (1) all dependences are satisfied; (2) no structural hazards
-        // while(!ID_stage.isEmpty()){
-        for (int i = 0; i < ID_stage.size(); i++) {
+        int i = 0;
+        int completions = 0;
+        bool blocked = false;
+        while (i < ID_stage.size() && completions < pipeline_width && !blocked) {
             Trace instr = ID_stage.process();
-            bool dependencies_satisfied = true;
             for (std::vector<unsigned long>::size_type j = 0; j < instr.dependencyAddr.size(); j++) {
-                if (in_progress_instructions.find(instr.dependencyAddr[i]) != in_progress_instructions.end()) {
-                    dependencies_satisfied = false;
-                    ID_stage.insert(instr);
+                if (in_progress_instructions.find(instr.dependencyAddr[j]) != in_progress_instructions.end()) {
+                    blocked = true;
+                    ID_stage.push_front(instr);
                     break;
                 }
             }
-            if (dependencies_satisfied) {
+            if (!blocked) {
                 if(instr.type == Trace::Type::INT_INSTR){
                     // We can’t have two integer ALU instructions go to EX in the same cycle
                     if (ALU_unit.isAvailable()){
                         EX_stage.insert(instr);
+                        completions++;
                         ALU_unit.setBusy();
+                    }
+                    else {
+                        blocked = true;
+                        ID_stage.push_front(instr);
                     }
                 }else if(instr.type == Trace::Type::FP_INSTR){
                     // We can’t have two FP instructions go to EX in the same cycle
                     if(FP_unit.isAvailable()){
                         EX_stage.insert(instr);
+                        completions++;
                         FP_unit.setBusy();
+                    }
+                    else {
+                        blocked = true;
+                        ID_stage.push_front(instr);
                     }
                 }else if(instr.type == Trace::Type::BRANCH){
                     // We can’t have two branch instructions go to EX in the same cycle
                     if(Branch_unit.isAvailable()){
                         EX_stage.insert(instr);
+                        completions++;
                         Branch_unit.setBusy();
                         Branch_dep = 1;
+                    }
+                    else {
+                        blocked = true;
+                        ID_stage.push_front(instr);
                     }
                 }else{
                     // Move Load/Store instructions to EX
                     EX_stage.insert(instr);
+                    completions++;
                 }
             }
+            i++;
         }
         // All instructions in IF move to ID if pipeline slots are available (no instructions stalled in ID)
         while(!IF_stage.isEmpty()){
