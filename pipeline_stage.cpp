@@ -90,6 +90,10 @@ int EXStage::size() const
     return PipelineStage::size();
 }
 
+void EXStage::push_front(const Trace &instruction) {
+    instructions.push_front(instruction);
+}
+
 void MEMStage::insert(const Trace &instruction)
 {
     PipelineStage::insert(instruction);

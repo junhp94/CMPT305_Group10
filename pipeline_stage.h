@@ -55,6 +55,7 @@ public:
     Trace process() override;
     bool isEmpty() const override;
     int size() const override;
+    void push_front(const Trace &instruction);
 };
 
 // Memory read/write for load/store instructions
