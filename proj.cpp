@@ -7,8 +7,10 @@
 #include "file_input.h"
 #include "pipeline_simulator.h"
 
-int main(int argc, char *argv[]) {
-    if (argc < 5) {
+int main(int argc, char *argv[])
+{
+    if (argc < 5)
+    {
         printf("Not enough arguments\n");
         return 0;
     }
@@ -20,4 +22,6 @@ int main(int argc, char *argv[]) {
 
     PipelineSimulator simulation;
     simulation.runSimulation(file_name, start_inst, inst_count, width);
+
+    simulation.printStats();
 }
