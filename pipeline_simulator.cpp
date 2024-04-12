@@ -284,7 +284,7 @@ void PipelineSimulator::ExperimentalDesign(){
         std::string file_name = file_names[i];
         for (int W = 0; W < 4; ++W){
             for (int r = 0; r < 6; ++r){
-                runSimulation(file_name, replications[r], 10, W+1);
+                runSimulation(file_name, replications[r], 1000000, W+1);
                 std::cout << "Workload: " << file_name << ", W: " << W+1 << ", Replication: " << r+1 << std::endl;
                 printStats();
                 total_runtime += currentCycle;
