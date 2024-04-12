@@ -117,7 +117,7 @@ void PipelineSimulator::runSimulation(const std::string &file_name, unsigned lon
         // All instructions in ID move to EX (in order) if (1) all dependences are satisfied; (2) no structural hazards
         int ID_completions = 0;
         bool ID_blocked = false;
-        while (ID_stage.isEmpty() && ID_completions < pipeline_width && !ID_blocked)
+        while (!ID_stage.isEmpty() && ID_completions < pipeline_width && !ID_blocked)
         {
             Trace instr = ID_stage.process();
             for (std::vector<unsigned long>::size_type j = 0; j < instr.dependencyAddr.size(); j++)
