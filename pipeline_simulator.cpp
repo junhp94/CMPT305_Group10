@@ -184,19 +184,19 @@ void PipelineSimulator::runSimulation(const std::string &file_name, unsigned lon
             switch (instr.type)
             {
             case Trace::INT_INSTR:
-                int_instr_count++;
+                this->int_instr_count++;
                 break;
             case Trace::BRANCH:
-                branch_instr_count++;
+                this->branch_instr_count++;
                 break;
             case Trace::FP_INSTR:
-                float_instr_count++;
+                this->float_instr_count++;
                 break;
             case Trace::LOAD:
-                load_instr_count++;
+                this->load_instr_count++;
                 break;
             case Trace::STORE:
-                store_instr_count++;
+                this->store_instr_count++;
                 break;
             }
         }
