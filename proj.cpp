@@ -21,7 +21,9 @@ int main(int argc, char *argv[])
     int width = std::stoi(argv[4]);
 
     PipelineSimulator simulation;
-    simulation.runSimulation(file_name, start_inst, inst_count, width);
+    // simulation.runSimulation(file_name, start_inst, inst_count, width);
 
-    simulation.printStats();
+    // simulation.printStats();
+
+    simulation.ExperimentalDesign(file_name);
 }

@@ -1,5 +1,6 @@
 #include <iostream>
 #include <set>
+#include <iomanip>
 
 #include "pipeline_simulator.h"
 #include "file_input.h"
@@ -21,12 +22,9 @@ void PipelineSimulator::runSimulation(const std::string &file_name, unsigned lon
 
     file.ReadTraceFromFile(file_name);
     std::set<unsigned long> in_progress_instructions;
-
+    
     file.SkipToInstruction(start_inst);
 
-    // TODO: probably need a set for when something is done ex and for mem
-    // "For dependence on integer or FP instructions, dependences are satisfied when they complete EX"
-    //"For dependence on load or store instructions, dependences are satisfied when they complete MEM"
     FunctionalUnit ALU_unit;
     FunctionalUnit FP_unit;
     FunctionalUnit Branch_unit;
@@ -39,7 +37,6 @@ void PipelineSimulator::runSimulation(const std::string &file_name, unsigned lon
     MEMStage MEM_stage;
     WBStage WB_stage;
 
-    // Temp BRANCH dependency
     int Branch_dep = 0;
 
     while (finished_instr_count < inst_count)
@@ -64,8 +61,9 @@ void PipelineSimulator::runSimulation(const std::string &file_name, unsigned lon
                 to_remove.push_back(instr);
             }
         }
+        bool EX_blocked = false;
         // All instructions in EX move to MEM (in order) except more than one load or store
-        while (!EX_stage.isEmpty())
+        while (!EX_stage.isEmpty() && !EX_blocked)
         {
             Trace instr = EX_stage.process();
             if (instr.type == Trace::Type::LOAD)
@@ -76,6 +74,11 @@ void PipelineSimulator::runSimulation(const std::string &file_name, unsigned lon
                     MEM_stage.insert(instr);
                     Load_unit.setBusy();
                 }
+                else
+                {
+                    EX_blocked = true;
+                    EX_stage.push_front(instr);
+                }
             }
             else if (instr.type == Trace::Type::STORE)
             {
@@ -84,6 +87,11 @@ void PipelineSimulator::runSimulation(const std::string &file_name, unsigned lon
                 {
                     MEM_stage.insert(instr);
                     Store_unit.setBusy();
+                }
+                else
+                {
+                    EX_blocked = true;
+                    EX_stage.push_front(instr);
                 }
             }
             else
@@ -105,20 +113,20 @@ void PipelineSimulator::runSimulation(const std::string &file_name, unsigned lon
         // All instructions in ID move to EX (in order) if (1) all dependences are satisfied; (2) no structural hazards
         int i = 0;
         int completions = 0;
-        bool blocked = false;
-        while (i < ID_stage.size() && completions < pipeline_width && !blocked)
+        bool ID_blocked = false;
+        while (i < ID_stage.size() && completions < pipeline_width && !ID_blocked)
         {
             Trace instr = ID_stage.process();
             for (std::vector<unsigned long>::size_type j = 0; j < instr.dependencyAddr.size(); j++)
             {
                 if (in_progress_instructions.find(instr.dependencyAddr[j]) != in_progress_instructions.end())
                 {
-                    blocked = true;
+                    ID_blocked = true;
                     ID_stage.push_front(instr);
                     break;
                 }
             }
-            if (!blocked)
+            if (!ID_blocked)
             {
                 if (instr.type == Trace::Type::INT_INSTR)
                 {
@@ -131,7 +139,7 @@ void PipelineSimulator::runSimulation(const std::string &file_name, unsigned lon
                     }
                     else
                     {
-                        blocked = true;
+                        ID_blocked = true;
                         ID_stage.push_front(instr);
                     }
                 }
@@ -146,7 +154,7 @@ void PipelineSimulator::runSimulation(const std::string &file_name, unsigned lon
                     }
                     else
                     {
-                        blocked = true;
+                        ID_blocked = true;
                         ID_stage.push_front(instr);
                     }
                 }
@@ -162,7 +170,7 @@ void PipelineSimulator::runSimulation(const std::string &file_name, unsigned lon
                     }
                     else
                     {
-                        blocked = true;
+                        ID_blocked = true;
                         ID_stage.push_front(instr);
                     }
                 }
@@ -197,6 +205,8 @@ void PipelineSimulator::runSimulation(const std::string &file_name, unsigned lon
                 break;
             case Trace::STORE:
                 this->store_instr_count++;
+                break;
+            case Trace::INVALID:
                 break;
             }
         }
@@ -241,17 +251,44 @@ void PipelineSimulator::printStats()
 
     // header
     std::cout << std::setw(15) << "Execution Time (cycles)"
-              << std::setw(8) << "%int"
+              << std::setw(8) << "%INT"
               << std::setw(8) << "%FP"
-              << std::setw(8) << "%branch"
-              << std::setw(8) << "%load"
-              << std::setw(8) << "%store" << std::endl;
+              << std::setw(8) << "%BRANCH"
+              << std::setw(8) << "%LOAD"
+              << std::setw(8) << "%STORE" << std::endl;
 
     // results
     std::cout << std::setw(15) << currentCycle
-              << std::setw(8) << std::fixed << std::setprecision(2) << int_percentage
+              << std::setw(8) << "            " << std::fixed << std::setprecision(2) << int_percentage
               << std::setw(8) << std::fixed << std::setprecision(2) << float_percentage
               << std::setw(8) << std::fixed << std::setprecision(2) << branch_percentage
               << std::setw(8) << std::fixed << std::setprecision(2) << load_percentage
               << std::setw(8) << std::fixed << std::setprecision(2) << store_percentage << std::endl;
+}
+
+void PipelineSimulator::ExperimentalDesign(const std::string &file_name){
+    // Replication 1
+    for (int W = 1; W <= 4; ++W){
+        runSimulation(file_name, 1, 1000000, W);
+    }
+    // Replication 2
+    for (int W = 1; W <= 4; ++W){
+        runSimulation(file_name, 5000000, 1000000, W);
+    }
+    // Replication 3
+    for (int W = 1; W <= 4; ++W){
+        runSimulation(file_name, 10000000, 1000000, W);
+    }
+    // Replication 4
+    for (int W = 1; W <= 4; ++W){
+        runSimulation(file_name, 15000000, 1000000, W);
+    }
+    // Replication 5
+    for (int W = 1; W <= 4; ++W){
+        runSimulation(file_name, 20000000, 1000000, W);
+    }
+    // Replication 6
+    for (int W = 1; W <= 4; ++W){
+        runSimulation(file_name, 25000000, 1000000, W);
+    }
 }
