@@ -16,6 +16,17 @@ PipelineSimulator::~PipelineSimulator()
     // cleanup
 }
 
+void PipelineSimulator::ResetSimulator()
+{
+    finished_instr_count = 0;
+    currentCycle = 0;
+    int_instr_count = 0;
+    float_instr_count = 0;
+    branch_instr_count = 0;
+    load_instr_count = 0;
+    store_instr_count = 0;
+}
+
 void PipelineSimulator::runSimulation(const std::string &file_name, unsigned long start_inst, unsigned long inst_count, int pipeline_width)
 {
     FileInput file;
@@ -47,7 +58,6 @@ void PipelineSimulator::runSimulation(const std::string &file_name, unsigned lon
         {
             WB_stage.process();
             this->finished_instr_count++;
-            std::cout << finished_instr_count << std::endl;
         }
         // All instructions in MEM move to WB
         while (!MEM_stage.isEmpty())
@@ -261,29 +271,93 @@ void PipelineSimulator::printStats()
     std::cout << "%store : " << std::fixed << std::setprecision(2) << store_percentage << "%" << std::endl;
 }
 
-void PipelineSimulator::ExperimentalDesign(const std::string &file_name){
-    // Replication 1
-    for (int W = 1; W <= 4; ++W){
-        runSimulation(file_name, 1, 1000000, W);
+void PipelineSimulator::ExperimentalDesign(){
+    std::string file_names[] = {"compute_fp_1", "compute_int_0", "srv_0"};
+    int replications[] = {1, 5000000, 10000000, 15000000, 20000000, 25000000};
+    int total_runtime = 0;
+    int table[3][4];
+    for (int i = 0; i < 3; ++i) {
+        for (int j = 0; j < 4; ++j) {
+            table[i][j] = 0;
+        }
     }
-    // Replication 2
-    for (int W = 1; W <= 4; ++W){
-        runSimulation(file_name, 5000000, 1000000, W);
+
+    for (int i = 0; i < 3; ++i){
+        std::string file_name = file_names[i];
+        for (int W = 0; W < 4; ++W){
+            for (int r = 0; r < 6; ++r){
+                runSimulation(file_name, replications[r], 1000000, W+1);
+                std::cout << "Workload: " << file_name << ", W: " << W+1 << ", Replication: " << r+1 << std::endl;
+                printStats();
+                total_runtime += currentCycle;
+                
+                table[i][W] += currentCycle;
+
+                ResetSimulator();
+            }
+            table[i][W] /= 6;
+            std::cout << "Workload: " << file_name << ", W: " << W+1 << ", Mean Runtime: " << table[i][W] << std::endl;
+            std::cout << std::endl;
+        }
     }
-    // Replication 3
-    for (int W = 1; W <= 4; ++W){
-        runSimulation(file_name, 10000000, 1000000, W);
+
+    float fp1_impact = 0;
+    float int0_impact = 0;
+    float srv0_impact = 0;
+    float W1_impact = 0;
+    float W2_impact = 0;
+    float W3_impact = 0;
+    float W4_impact = 0;
+
+    float SSY = 0;
+
+    for(int i = 0; i < 3; ++i){
+        for(int j = 0; j < 4; ++j){
+            SSY += table[i][j] * table[i][j];
+
+            if(i == 0){
+                fp1_impact += table[i][j];
+            }else if(i == 1){
+                int0_impact += table[i][j];
+            }else{
+                srv0_impact += table[i][j];
+            }
+            if(j == 0){
+                W1_impact += table[i][j];
+            }else if(j == 1){
+                W2_impact += table[i][j];
+            }else if(j == 2){
+                W3_impact += table[i][j];
+            }else{
+                W4_impact += table[i][j];
+            }
+        }
     }
-    // Replication 4
-    for (int W = 1; W <= 4; ++W){
-        runSimulation(file_name, 15000000, 1000000, W);
-    }
-    // Replication 5
-    for (int W = 1; W <= 4; ++W){
-        runSimulation(file_name, 20000000, 1000000, W);
-    }
-    // Replication 6
-    for (int W = 1; W <= 4; ++W){
-        runSimulation(file_name, 25000000, 1000000, W);
-    }
+
+    float mean_runtime = total_runtime/72;
+    fp1_impact = mean_runtime - fp1_impact/4;
+    int0_impact = mean_runtime - int0_impact/4;
+    srv0_impact = mean_runtime - srv0_impact/4;
+    W1_impact = mean_runtime - W1_impact/3;
+    W2_impact = mean_runtime - W2_impact/3;
+    W3_impact = mean_runtime - W3_impact/3;
+    W4_impact = mean_runtime - W4_impact/3;
+
+    float SS0 = 3 * 4 * mean_runtime * mean_runtime;
+    float SSA = 4 * (fp1_impact * fp1_impact + int0_impact * int0_impact + srv0_impact * srv0_impact);
+    float SSB = 3 * (W1_impact * W1_impact + W2_impact * W2_impact + W3_impact * W3_impact + W4_impact * W4_impact);
+    float SST = SSY - SS0;
+    float SSE = SST - SSA - SSB;
+
+    std::cout << "Mean Runtime: " << mean_runtime << std::endl;
+    std::cout << "fp1 impact: " << fp1_impact << std::endl;
+    std::cout << "int0 impact: " << int0_impact << std::endl;
+    std::cout << "srv0 impact: " << srv0_impact << std::endl;
+    std::cout << "W1 impact: " <<  W1_impact << std::endl;
+    std::cout << "W2 impact: " <<  W2_impact << std::endl;
+    std::cout << "W3 impact: " <<  W3_impact << std::endl;
+    std::cout << "W4 impact: " <<  W4_impact << std::endl;
+    std::cout << "Variation explained by Workload: " << SSA/SST * 100 << "%" << std::endl;
+    std::cout << "Variation explained by Pipeline Width: " << SSB/SST * 100 << "%" << std::endl;
+    std::cout << "Variation explained by Experimental Error: " << SSE/SST * 100 << "%" << std::endl;
 }

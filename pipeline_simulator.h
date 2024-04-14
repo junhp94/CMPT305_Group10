@@ -26,7 +26,8 @@ public:
 
     void printStats();
 
-    void ExperimentalDesign(const std::string &file_name);
+    void ResetSimulator();
+    void ExperimentalDesign();
 };
 
 #endif
