@@ -6,12 +6,12 @@
 class Trace {
 public:
     enum Type {
+        INVALID,
         INT_INSTR,
         FP_INSTR,
         BRANCH,
         LOAD,
-        STORE,
-        INVALID
+        STORE
     };
 
     unsigned long instructionAddr;
