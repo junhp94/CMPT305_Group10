@@ -251,21 +251,14 @@ void PipelineSimulator::printStats()
     double load_percentage = static_cast<double>(load_instr_count) / total_instr_count * 100.0;
     double store_percentage = static_cast<double>(store_instr_count) / total_instr_count * 100.0;
 
-    // header
-    std::cout << std::setw(15) << "Execution Time (cycles)"
-              << std::setw(8) << "%INT"
-              << std::setw(8) << "%FP"
-              << std::setw(8) << "%BRANCH"
-              << std::setw(8) << "%LOAD"
-              << std::setw(8) << "%STORE" << std::endl;
-
-    // results
-    std::cout << std::setw(15) << currentCycle
-              << std::setw(8) << "            " << std::fixed << std::setprecision(2) << int_percentage
-              << std::setw(8) << std::fixed << std::setprecision(2) << float_percentage
-              << std::setw(8) << std::fixed << std::setprecision(2) << branch_percentage
-              << std::setw(8) << std::fixed << std::setprecision(2) << load_percentage
-              << std::setw(8) << std::fixed << std::setprecision(2) << store_percentage << std::endl;
+    // print stats
+    std::cout << "Instruction Type Histogram" << std::endl;
+    std::cout << "Total Execution Time : " << currentCycle << " cycles" << std::endl;
+    std::cout << "%int : " << std::fixed << std::setprecision(2) << int_percentage << "%" << std::endl;
+    std::cout << "%FP : " << std::fixed << std::setprecision(2) << float_percentage << "%" << std::endl;
+    std::cout << "%branch : " << std::fixed << std::setprecision(2) << branch_percentage << "%" << std::endl;
+    std::cout << "%load : " << std::fixed << std::setprecision(2) << load_percentage << "%" << std::endl;
+    std::cout << "%store : " << std::fixed << std::setprecision(2) << store_percentage << "%" << std::endl;
 }
 
 void PipelineSimulator::ExperimentalDesign(const std::string &file_name){
